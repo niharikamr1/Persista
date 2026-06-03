@@ -32,8 +32,6 @@
 - [Browser Extension](#browser-extension)
 - [Development Commands](#development-commands)
 - [Service Ports](#service-ports)
-- [Roadmap](#roadmap)
-- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -429,56 +427,6 @@ cd apps/backend && ./gradlew test               # Backend unit + integration tes
 | Prometheus | 9090 | http://localhost:9090 | Not yet verified |
 | Grafana | 3001 | http://localhost:3001 | Not yet verified |
 | Loki | 3100 | http://localhost:3100 | Not yet verified |
-
----
-
-## Roadmap
-
-**In progress**
-- [ ] Observability stack — wire up and verify Prometheus scraping, Loki log ingestion, and Grafana dashboards end-to-end
-- [ ] Nginx reverse proxy — test and validate `infra/nginx/nginx.conf` for production routing
-
-**Pending**
-- [ ] Gemini capture — verify DOM observer on `gemini.google.com`
-- [ ] Context reconstruction — end-to-end testing and UI flow
-- [ ] Projects — link sessions, add notes, tag by topic
-- [ ] Semantic search — end-to-end testing with valid OpenAI key or verified local embeddings
-- [ ] Firefox extension support
-- [ ] Chrome Web Store submission
-
----
-
-## Troubleshooting
-
-**Backend fails to connect to Postgres**
-Confirm `POSTGRES_HOST`, `POSTGRES_PORT`, and `POSTGRES_PASSWORD` in `.env` match `infra/docker/.env`. On Windows, `start-backend.ps1` reads `.env` automatically; `gradlew bootRun` requires the variables to already be in your shell environment.
-
-**Flyway migration errors on startup**
-Run `./scripts/reset-db.sh` to wipe volumes and replay all migrations from scratch. Never delete individual migration files.
-
-**Extension does not appear after Load unpacked**
-Confirm you selected `apps/extension/build/chrome-mv3-dev` — the folder that contains `manifest.json`. If the folder is empty, the first build has not completed yet. Wait for `Done in …` in the `pnpm dev:extension` terminal.
-
-**Extension shows an error badge immediately after loading**
-Open `chrome://extensions → Persista → Details → Inspect views → service worker`. The most common cause is the backend not running on port 8080.
-
-**Extension is loaded but not syncing**
-Check the service worker console for `NET::ERR_CONNECTION_REFUSED`. If present, start the backend first. Also confirm the toggle in the extension popup is set to **ON**.
-
-**Auth errors after a database wipe**
-Wiping the database invalidates all issued tokens. Open the extension popup, log out, and log back in.
-
-**Changes to source code are not taking effect in the extension**
-Click **↺ reload** on the extension card at `chrome://extensions` after each Plasmo rebuild. For content script changes, also reload the active tab (`chat.openai.com`, `claude.ai`, or `gemini.google.com`).
-
-**"Could not load manifest" when loading unpacked**
-The build folder is incomplete. Run `pnpm --filter @aicc/extension clean && pnpm dev:extension` to rebuild from scratch.
-
-**`pnpm install` fails on shared-types**
-Build the shared package first: `pnpm --filter @aicc/shared-types build`. This runs automatically via `dev-setup.sh`.
-
-**Windows: three JVM processes exhausting memory**
-Use `.\scripts\start-backend.ps1` instead of `gradlew bootRun`. The script builds the JAR first (Gradle exits), then starts a single `java -jar` process.
 
 ---
 
