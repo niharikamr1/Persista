@@ -21,7 +21,6 @@
 
 - [The Problem](#the-problem)
 - [How It Works](#how-it-works)
-- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
@@ -88,29 +87,6 @@ These are not edge cases. They are the default experience for anyone doing serio
 2. **Sync** — Events are batched and POSTed to the backend. The queue retries automatically when the backend is unreachable.
 3. **Index** — The backend stores events in PostgreSQL and generates vector embeddings (local 384-dim model or OpenAI) for semantic retrieval.
 4. **Reconstruct** — Given a new session, the API retrieves the most relevant prior context within a token budget, ready to inject into the next conversation.
-
----
-
-## Screenshots
-
-> Add screenshots to `docs/screenshots/` and replace the placeholders below.
-
-### Dashboard — Session Overview
-<!-- ![Dashboard](docs/screenshots/01-dashboard-sessions.png) -->
-> `docs/screenshots/01-dashboard-sessions.png` — _Pending_
-
-### Session Detail — Prompts & Responses
-<!-- ![Session Detail](docs/screenshots/02-session-detail.png) -->
-> `docs/screenshots/02-session-detail.png` — _Pending_
-
-### Browser Extension Popup
-<!-- ![Extension Popup](docs/screenshots/03-extension-popup.png) -->
-> `docs/screenshots/03-extension-popup.png` — _Pending_
-
-### Semantic Memory Search
-<!-- ![Semantic Search](docs/screenshots/04-semantic-search.png) -->
-> `docs/screenshots/04-semantic-search.png` — _Pending_
-
 
 ---
 
