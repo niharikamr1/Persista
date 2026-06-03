@@ -1,0 +1,32 @@
+{
+  "extends": "@aicc/tsconfig/plasmo.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~*": [
+        "./src/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "types": [
+      "chrome"
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../node_modules/.pnpm/@types+react@18.3.29/node_modules/@types",
+      "../../node_modules/@types"
+    ]
+  },
+  "include": [
+    ".plasmo/index.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build"
+  ]
+}

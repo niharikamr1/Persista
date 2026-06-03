@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+.next
+.plasmo
+.output
+apps/backend/.gradle
+apps/backend/build
+*.lock

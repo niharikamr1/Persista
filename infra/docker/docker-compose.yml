@@ -1,0 +1,204 @@
+name: aicc
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Context Continuity — local development infrastructure
+#
+# Services:
+#   postgres   → PostgreSQL 16 + pgvector            :5432
+#   minio      → S3-compatible object storage        :9000 (API), :9001 (console)
+#   minio-init → one-shot bucket provisioner
+#   prometheus → metrics scraping                    :9090
+#   loki       → log aggregation                     :3100
+#   promtail   → Docker log collector → Loki
+#   grafana    → dashboards (Prometheus + Loki)      :3001
+#
+# Usage:
+#   cp .env.example .env          # fill in secrets
+#   docker compose up -d          # start all
+#   docker compose up -d postgres minio   # start only core dependencies
+#   docker compose logs -f backend        # tail a service
+#   docker compose down -v        # destroy (including volumes)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL 16 + pgvector ───────────────────────────────────────────────
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    container_name: aicc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aicc}
+      POSTGRES_USER: ${POSTGRES_USER:-aicc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aicc_user} -d ${POSTGRES_DB:-aicc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - aicc-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── MinIO object storage ───────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    platform: linux/amd64
+    container_name: aicc-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 10s
+    networks:
+      - aicc-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── MinIO bucket provisioner (runs once, then exits) ──────────────────────
+  minio-init:
+    image: minio/mc:latest
+    container_name: aicc-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 $${MINIO_ACCESS_KEY:-minioadmin} $${MINIO_SECRET_KEY:-minioadmin};
+        mc mb --ignore-existing local/${MINIO_BUCKET:-aicc-files};
+        mc anonymous set none local/${MINIO_BUCKET:-aicc-files};
+        echo '==> MinIO bucket ready: ${MINIO_BUCKET:-aicc-files}';
+      "
+    networks:
+      - aicc-net
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aicc-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+      - "--web.enable-remote-write-receiver"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - aicc-net
+
+  # ── Loki log aggregation ──────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: aicc-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ../observability/loki/loki-config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - aicc-net
+
+  # ── Promtail — Docker log collector → Loki ────────────────────────────────
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: aicc-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ../observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log:/var/log:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - aicc-net
+
+  # ── Grafana dashboards ─────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.0.0
+    platform: linux/amd64
+    container_name: aicc-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_HTTP_PORT: "3000"
+      GF_LOG_LEVEL: warn
+    ports:
+      - "3001:3000"   # 3000 is reserved for Next.js
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - aicc-net
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  loki_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  aicc-net:
+    name: aicc-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -1,0 +1,103 @@
+spring:
+  application:
+    name: aicc-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # JPA — common
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+          batch_size: 50    # enables JDBC batching for saveAll (ingest pipeline)
+        order_inserts: true # group inserts by table for effective batching
+        order_updates: true
+
+  # Flyway
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # Cache type
+  cache:
+    type: caffeine
+
+  # Virtual threads (Java 21)
+  threads:
+    virtual:
+      enabled: true
+
+# Actuator
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,prometheus,metrics,loggers
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true       # exposes /actuator/health/liveness and /actuator/health/readiness
+    loggers:
+      enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+    db:
+      enabled: true         # auto-configured PostgreSQL health check
+    diskspace:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active:dev}
+
+# App-level properties (bound to AppProperties record)
+aicc:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-expiry-ms: ${JWT_EXPIRY_MS:900000}
+    refresh-expiry-ms: ${REFRESH_TOKEN_EXPIRY_MS:604800000}
+  minio:
+    endpoint: ${MINIO_ENDPOINT}
+    access-key: ${MINIO_ACCESS_KEY}
+    secret-key: ${MINIO_SECRET_KEY}
+    bucket: ${MINIO_BUCKET:aicc-files}
+    signed-url-expiry-seconds: ${MINIO_SIGNED_URL_EXPIRY_SECONDS:3600}
+  ai:
+    open-ai-api-key: ${OPENAI_API_KEY}
+    embedding-model: ${EMBEDDING_MODEL:text-embedding-3-small}
+    chat-model: ${AI_CHAT_MODEL:gpt-4o-mini}
+  encryption:
+    key: ${ENCRYPTION_KEY:}
+
+# Resilience4j — rate limiting
+resilience4j:
+  ratelimiter:
+    configs:
+      ingest:
+        limit-for-period: 200          # max events per refresh window
+        limit-refresh-period: PT1M     # window resets every 60 seconds (ISO-8601 for Resilience4j)
+        timeout-duration: PT0S         # fail immediately, never queue
+
+# Server
+server:
+  port: ${BACKEND_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+  # Compress responses larger than 2KB
+  compression:
+    enabled: true
+    min-response-size: 2048
+    mime-types: application/json,application/problem+json

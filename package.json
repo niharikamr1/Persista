@@ -1,0 +1,34 @@
+{
+  "name": "ai-context-continuity",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/extension",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "pnpm --filter @aicc/web dev",
+    "dev:extension": "pnpm --filter @aicc/extension dev",
+    "build:web": "pnpm --filter @aicc/web build",
+    "build:extension": "pnpm --filter @aicc/extension build",
+    "build:backend": "scripts/build-backend.sh",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .prettierignore",
+    "clean": "pnpm -r clean && rimraf node_modules",
+    "docker:up": "docker compose -f infra/docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infra/docker/docker-compose.yml down",
+    "docker:logs": "docker compose -f infra/docker/docker-compose.yml logs -f"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3",
+    "rimraf": "^6.1.3",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

@@ -1,0 +1,180 @@
+@baseUrl = http://localhost:8080
+#Generate via POST /api/v1/auth/login
+@token = VALID_JWT_HERE
+@refreshToken = VALID_REFRESH_TOKEN_HERE
+###
+
+POST http://localhost:8080/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Test1234!",
+  "displayName": "Test User"
+}
+
+###
+
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Test1234!"
+}
+
+###
+
+### GET current user profile
+GET {{baseUrl}}/api/v1/auth/me
+Authorization: Bearer {{token}}
+
+###
+# Refresh the access token using the refresh token from login
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+# Logout — invalidates the current user's refresh tokens
+POST {{baseUrl}}/api/v1/auth/logout
+Authorization: Bearer {{token}}
+
+###
+
+POST {{baseUrl}}/api/v1/events/ingest
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "events": [
+    {
+      "id": "evt_a1b2c3d4",
+      "sessionId": "sess_test_001",
+      "conversationId": "conv_test_001",
+      "platform": "claude",
+      "type": "PROMPT_SENT",
+      "timestamp": 1748185200000,
+      "payload": {
+        "content": "Explain how pgvector works for semantic search",
+        "model": "claude-3-5-sonnet"
+      }
+    },
+    {
+      "id": "evt_e5f6g7h8",
+      "sessionId": "sess_test_001",
+      "conversationId": "conv_test_001",
+      "platform": "claude",
+      "type": "RESPONSE_RECEIVED",
+      "timestamp": 1748185215000,
+      "payload": {
+        "content": "pgvector is a PostgreSQL extension that adds vector similarity search. It stores embeddings as vectors and supports cosine, L2, and inner product distance.",
+        "model": "claude-3-5-sonnet",
+        "tokens": 48
+      }
+    }
+  ]
+}
+
+###
+
+###
+
+POST {{baseUrl}}/api/v1/sessions/batch
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sessions": [
+    {
+      "id": "sess_test_001",
+      "platform": "CLAUDE",
+      "startedAt": 1748039000000
+    }
+  ]
+}
+
+###
+
+POST {{baseUrl}}/api/v1/memory/search
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "pgvector semantic search",
+  "topK": 5
+}
+
+###
+
+POST {{baseUrl}}/api/v1/context/reconstruct
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sessionId": "sess_test_001",
+  "maxTokens": 4000
+}
+
+###
+# Idempotency check — same IDs should come back as duplicates, not re-inserted
+POST {{baseUrl}}/api/v1/events/ingest
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "events": [
+    {
+      "id": "evt_a1b2c3d4",
+      "sessionId": "sess_test_001",
+      "platform": "claude",
+      "type": "PROMPT_SENT",
+      "timestamp": 1748185200000,
+      "payload": {"content": "duplicate test"}
+    }
+  ]
+}
+
+###
+# Sync checkpoint — confirms the checkpoint advanced after ingest
+GET {{baseUrl}}/api/v1/sync/status
+Authorization: Bearer {{token}}
+
+###
+
+POST {{baseUrl}}/api/v1/events/ingest
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "events": [
+    {
+      "id": "evt_retry_001",
+      "sessionId": "sess_test_001",
+      "platform": "claude",
+      "type": "PROMPT_SENT",
+      "timestamp": 1748185300000,
+      "payload": {
+        "content": "Explain how pgvector works for semantic search"
+      }
+    },
+    {
+      "id": "evt_retry_002",
+      "sessionId": "sess_test_001",
+      "platform": "claude",
+      "type": "RESPONSE_RECEIVED",
+      "timestamp": 1748185315000,
+      "payload": {
+        "content": "pgvector is a PostgreSQL extension that adds vector similarity search. It stores embeddings as vectors and supports cosine, L2, and inner product distance."
+      }
+    }
+  ]
+}
+
+###
+
+GET {{baseUrl}}/api/v1/auth/me
+Authorization: Bearer {{token}}

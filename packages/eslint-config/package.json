@@ -1,0 +1,16 @@
+{
+  "name": "@aicc/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "nextjs.js",
+    "plasmo.js"
+  ],
+  "peerDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0"
+  }
+}

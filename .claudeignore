@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+build/
+.gradle/
+.idea/
+coverage/
+*.log
+
+postgres-data/
+minio-data/
+grafana-data/
+prometheus-data/
+
+docs/archive/

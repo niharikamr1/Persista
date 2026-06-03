@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5433/${POSTGRES_DB:aicc}
+    username: ${POSTGRES_USER:aicc_user}
+    password: ${POSTGRES_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 900000
+      pool-name: aicc-dev-pool
+      # Validate connection health before handing to application
+      connection-test-query: SELECT 1
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    out-of-order: false
+    validate-on-migrate: true
+
+logging:
+  level:
+    com.aicc: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+aicc:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key-change-in-production-must-be-256-bits}
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  ai:
+    open-ai-api-key: ${OPENAI_API_KEY:sk-dev-placeholder}
+  encryption:
+    # 32 bytes of zeros — dev-only passthrough key, never use in production
+    key: ${ENCRYPTION_KEY:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}

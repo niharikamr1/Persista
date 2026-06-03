@@ -1,0 +1,83 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.plasmo/
+.output/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Java / Gradle
+apps/backend/.gradle/
+apps/backend/build/
+apps/backend/out/
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# Environment — root
+.env
+.env.local
+.env.test
+.env.staging
+.env.*.local
+!.env.example
+
+# Environment — web app (per-developer local overrides only; .env.development and .env.production are committed)
+apps/web/.env.local
+apps/web/.env.*.local
+!apps/web/.env.example
+!apps/web/.env.development
+!apps/web/.env.production
+
+# Environment — backend local developer override (personal, never committed)
+apps/backend/src/main/resources/application-local.yml
+
+# IDE
+.idea/
+.vscode/settings.json
+*.iml
+*.iws
+*.ipr
+
+# HTTP client credential files (IntelliJ / VS Code REST Client — may contain real tokens)
+http-client.env.json
+http-client.private.env.json
+rest-client.env.json
+
+# SSL / certificates — never commit private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Docker — local env and volumes
+infra/docker/.env
+infra/docker/volumes/
+
+# Cache
+.cache/
+.turbo/

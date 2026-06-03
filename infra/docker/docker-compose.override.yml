@@ -1,0 +1,22 @@
+# Local developer overrides — NOT committed with secrets.
+# This file is auto-merged by docker compose when present.
+# Tune per-developer without touching the main compose file.
+
+services:
+
+  postgres:
+    # Expose psql directly for local DB tools (DBeaver, IntelliJ, etc.)
+    ports:
+      - "5432:5432"
+
+  minio:
+    # Expose MinIO console on a fixed port for browser access
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  grafana:
+    environment:
+      # Disable login for local convenience (re-enable for shared environments)
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin

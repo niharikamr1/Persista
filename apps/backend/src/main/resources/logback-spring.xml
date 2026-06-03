@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ── Dev / local: human-readable colored console ──────────────────────── -->
+    <springProfile name="dev,local">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%cyan(%X{requestId:-no-req})] [%X{userId:-anon}] %cyan(%logger{36}) - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <logger name="com.aicc" level="DEBUG"/>
+        <logger name="org.springframework.security" level="INFO"/>
+        <logger name="org.hibernate.SQL" level="INFO"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- ── Prod: structured JSON via logstash-logback-encoder ───────────────── -->
+    <springProfile name="prod">
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <fieldNames>
+                    <timestamp>timestamp</timestamp>
+                    <version>[ignore]</version>
+                </fieldNames>
+                <!-- MDC fields promoted to top-level JSON keys -->
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <includeMdcKeyName>method</includeMdcKeyName>
+                <includeMdcKeyName>path</includeMdcKeyName>
+                <includeMdcKeyName>durationMs</includeMdcKeyName>
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerCause>10</maxDepthPerCause>
+                    <shortenedClassNameLength>20</shortenedClassNameLength>
+                    <rootCauseFirst>true</rootCauseFirst>
+                </throwableConverter>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+        </root>
+    </springProfile>
+
+</configuration>
